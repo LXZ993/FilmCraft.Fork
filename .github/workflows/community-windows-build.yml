@@ -1,0 +1,60 @@
+name: Community Windows build
+
+# An unofficial, unsigned portable Windows build of this fork's branch, published as a GitHub
+# prerelease. It carries portable.txt, so it keeps its settings in .\data next to filmcraft.exe and
+# never touches an installed FilmCraft's %APPDATA%\FilmCraft.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Prerelease tag, e.g. v0.20.1-community.1"
+        type: string
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 180
+    env:
+      CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: "-C target-feature=+crt-static"
+      FILMCRAFT_REQUIRE_WINRES: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: storytold/craft-fonts
+          ref: b076417b5880bd4154bd22f00695b1d28c6bea83
+          path: craft-fonts
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        shell: pwsh
+        run: |
+          $env:CRAFT_FONTS_DIR = Join-Path $PWD 'craft-fonts'
+          cargo build --release --locked -p filmcraft -p filmcraft-cli --features filmcraft/neural-voices
+      - name: Package portable zip
+        shell: pwsh
+        run: |
+          $name = "filmcraft-${{ inputs.tag }}-windows-x64-portable"
+          New-Item -ItemType Directory -Force -Path "dist/$name" | Out-Null
+          Copy-Item target/release/filmcraft.exe, target/release/filmcraft-cli.exe "dist/$name"
+          Set-Content -Encoding ascii -Path "dist/$name/portable.txt" -Value @(
+            'FilmCraft portable: preferences, presets, logs and crash recovery are kept in the data folder',
+            'next to filmcraft.exe. Delete this file to use %APPDATA%\FilmCraft instead.'
+          )
+          foreach ($f in 'README.md', 'LICENSE-MIT', 'LICENSE-APACHE', 'NOTICE') { Copy-Item $f "dist/$name" }
+          foreach ($lic in Get-ChildItem -Path 'craft-fonts/fonts/*/OFL.txt' -ErrorAction SilentlyContinue) {
+            Copy-Item $lic.FullName "dist/$name/OFL-$($lic.Directory.Name).txt"
+          }
+          & "dist/$name/filmcraft-cli.exe" --version
+          Compress-Archive -Path "dist/$name" -DestinationPath "dist/$name.zip"
+      - name: Publish prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = "Inoffizieller Community-Build (nicht signiert) von Branch ${{ github.ref_name }}, Commit ${{ github.sha }}. Portable: Einstellungen liegen im Ordner data neben filmcraft.exe."
+          gh release create "${{ inputs.tag }}" "dist/filmcraft-${{ inputs.tag }}-windows-x64-portable.zip" --repo "${{ github.repository }}" --target "${{ github.sha }}" --prerelease --title "${{ inputs.tag }} (inoffiziell)" --notes "$notes"
