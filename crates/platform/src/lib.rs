@@ -35,6 +35,8 @@ mod annexb;
 #[cfg_attr(not(any(target_os = "windows", target_os = "linux")), allow(dead_code))]
 mod biplanar;
 pub mod cursor;
+#[allow(unsafe_code)]
+pub mod elevation;
 #[cfg(target_os = "macos")]
 pub mod hardware_encode;
 pub mod hybrid;

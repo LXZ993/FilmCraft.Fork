@@ -387,6 +387,13 @@ fn app_creator(launch: Launch, graphics: graphics::GraphicsStart, created: Arc<A
         // Keep device selection available even when the default device is unavailable.
         // Settings ▸ Audio Hardware is applied on the first frame (`apply_prefs`).
         app.audio = Some(Box::new(audio::CpalOut::new()));
+        // Run as administrator: Windows drops every file drag-and-drop from Explorer (UIPI), so
+        // say why dropping files does nothing. Elevation does not make GPU rendering faster.
+        if filmcraft_platform::elevation::running_elevated() {
+            app.session.toast(filmcraft_ui_egui::i18n::t(
+                "FilmCraft is running as administrator: Windows blocks dragging files in from Explorer. Start FilmCraft normally to drop files.",
+            ));
+        }
         // The scrub grain gets its own output on its own thread (#2633): opening a device stream
         // can take ~0.6 s, which must never happen in a playhead-drag frame.
         let document_rate = app.session.active_sequence().map(|q| q.settings.sample_rate);
