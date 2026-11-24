@@ -27,6 +27,20 @@ impl FilmcraftApp {
         }
     }
 
+    /// Keep the Export mode settings in use (preset and settings, folder, Quick Export preset and
+    /// folder) for the next launch. Called when the app closes; unchanged settings write nothing.
+    pub fn remember_export(&mut self) {
+        let Some(path) = self.session.prefs_path.as_ref().and_then(|p| p.parent()).map(|d| d.join(crate::panels::export_mode::EXPORT_FILE)) else { return };
+        let now = crate::panels::export_mode::RememberedExport::of(&self.ui.export);
+        if self.remembered_export.as_ref() == Some(&now) {
+            return;
+        }
+        match now.save(&path) {
+            Ok(()) => self.remembered_export = Some(now),
+            Err(e) => log::warn!("saving export settings: {e}"),
+        }
+    }
+
     /// Drop the layout remembered for `workspace` (Reset to Saved Layout): the saved layout is the
     /// one to reopen with until the app closes again.
     pub fn forget_remembered_layout(&mut self, workspace: &str) -> Result<(), String> {

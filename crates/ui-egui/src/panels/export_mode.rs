@@ -39,6 +39,7 @@ mod presets;
 mod preview;
 mod queue;
 mod quick;
+mod remember;
 mod settings;
 
 use presets::preset_manager;
@@ -47,6 +48,7 @@ pub(crate) use preview::RANGES;
 use preview::preview_column;
 use queue::queue_column;
 pub use quick::quick_export;
+pub use remember::{EXPORT_FILE, RememberedExport};
 #[cfg(test)]
 pub(crate) use settings::PARS;
 use settings::settings_column;

@@ -28,12 +28,21 @@ impl FilmcraftApp {
         let frames = Arc::new(FrameServer::new(session.media.clone(), session.services.clone(), session.previews.clone(), FrameServer::default_workers()));
         let workspaces =
             session.prefs_path.as_ref().and_then(|p| p.parent()).map(|d| dock::WorkspacePrefs::load(&d.join(dock::WORKSPACES_FILE))).unwrap_or_default();
+        let remembered_export = session
+            .prefs_path
+            .as_ref()
+            .and_then(|p| p.parent())
+            .and_then(|d| panels::export_mode::RememberedExport::load(&d.join(panels::export_mode::EXPORT_FILE)));
+        let mut export = panels::export_mode::ExportUi::default();
+        if let Some(r) = &remembered_export {
+            r.apply(&mut export, |name| session.export_presets.find(name).is_some());
+        }
         let language = i18n::Language::parse(&session.prefs.general.interface_language).unwrap_or_default();
         let ime_document_epoch = session.document_epoch;
         let ime_active_sequence = session.state.active_sequence;
         Self {
             session,
-            ui: UiState { language, ..UiState::default() },
+            ui: UiState { language, export, ..UiState::default() },
             tokens: Tokens::for_kind(ThemeKind::Dark),
             frames,
             playback: Playback { speed: 1.0, ..Default::default() },
@@ -130,6 +139,7 @@ impl FilmcraftApp {
             workspace_restored: false,
             engine_call: false,
             workspaces,
+            remembered_export,
             menu_workspaces: Default::default(),
         }
     }
@@ -507,6 +517,7 @@ impl eframe::App for FilmcraftApp {
     /// update that waits for the exit.
     fn on_exit(&mut self) {
         self.remember_layout();
+        self.remember_export();
         // Late screenshot callbacks now find a dropped slot and write nothing; clients get one error.
         capture::cancel_all(self);
         for viewport in self.ime_viewports.drain(..) {

@@ -60,6 +60,7 @@ pub mod slip;
 pub mod source_monitor;
 pub mod still_migration;
 pub mod sync;
+pub mod track_mix;
 pub mod transcript;
 pub mod trim;
 pub mod voiceover;

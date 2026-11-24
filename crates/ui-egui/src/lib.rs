@@ -399,6 +399,9 @@ pub struct FilmcraftApp {
     workspace_restored: bool,
     /// Window ▸ Workspaces: saved layouts ([`dock::WORKSPACES_FILE`] in the data directory).
     pub workspaces: dock::WorkspacePrefs,
+    /// Export mode settings as last read from or written to
+    /// [`panels::export_mode::EXPORT_FILE`]: written again at exit only when they changed.
+    remembered_export: Option<panels::export_mode::RememberedExport>,
     /// Workspace names and the current one, as last handed to the native menu.
     menu_workspaces: (Vec<String>, String),
 }

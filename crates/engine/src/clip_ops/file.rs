@@ -31,8 +31,12 @@ pub(super) fn sequence_from_clip(s: &mut Session, p: &Value) -> Result<Value> {
     let n0 = s.history.undo.len();
     let name = pi.name.clone();
     let bin = s.project.root.parent_of(first).filter(|b| *b != s.project.root.id);
+    let mix = crate::track_mix::template(s);
     let seq = s.edit("New Sequence From Clip", |pr, st| {
         let id = pr.new_sequence(&name, settings, 1, n_audio.max(1), bin);
+        if let Some(q) = pr.sequence_mut(id) {
+            crate::track_mix::apply_to_new(mix.as_ref(), q);
+        }
         if channels == 1
             && let Some(q) = pr.sequence_mut(id)
         {

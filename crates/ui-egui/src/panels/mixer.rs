@@ -275,6 +275,7 @@ pub fn track_mixer(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     let show_hide_id = egui::Id::unique(SHOW_HIDE_TRACKS_OPEN);
     let mut show_hide: bool = ui.data(|d| d.get_temp(show_hide_id)).unwrap_or(false);
     let (show_hide_key, meter_input_key) = (panel_key(app, "mixer.showHideTracks"), panel_key(app, "mixer.meterInputOnly"));
+    let mut template_cmd: Option<&str> = None;
     egui::Popup::menu(&mresp).show(|ui| {
         let r = ui.add(egui::Button::new(tl!("Show/Hide Tracks…")).shortcut_text(show_hide_key));
         app.auto.add("mixer.menu.showHide", r.rect, "Show/Hide Tracks…");
@@ -287,7 +288,30 @@ pub fn track_mixer(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
         if r.clicked() {
             app.ui.mixer_meter_input_only = !on;
         }
+        ui.separator();
+        // Track mix template: this sequence's track volumes, pans and effects for other sequences
+        // and projects (`mixer.saveTrackMixTemplate` and friends).
+        let has_template = app.session.is_enabled("mixer.applyTrackMixTemplate");
+        for (id, label, enabled) in [
+            ("mixer.saveTrackMixTemplate", tl!("Save Track Mix as Template"), true),
+            ("mixer.applyTrackMixTemplate", tl!("Apply Track Mix Template"), has_template),
+            ("mixer.clearTrackMixTemplate", tl!("Clear Track Mix Template"), has_template),
+        ] {
+            let r = ui.add_enabled(enabled, egui::Button::new(label));
+            app.auto.add(&format!("mixer.menu.{}", id.trim_start_matches("mixer.")), r.rect, label);
+            if r.clicked() {
+                template_cmd = Some(id);
+            }
+        }
     });
+    if let Some(id) = template_cmd {
+        match app.session.execute(id, json!({})) {
+            Ok(_) if id == "mixer.applyTrackMixTemplate" => app.ui.status = tl!("Track mix template applied").into(),
+            Ok(_) if id == "mixer.clearTrackMixTemplate" => app.ui.status = tl!("Track mix template cleared").into(),
+            Ok(_) => {}
+            Err(e) => app.ui.status = e.to_string(),
+        }
+    }
     if show_hide {
         let mut open = true;
         let mut close = false;

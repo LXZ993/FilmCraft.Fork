@@ -1708,6 +1708,7 @@ fn build() -> Vec<CommandSpec> {
                 let n = s.project.sequences().count() + 1;
                 let name = str_p(p, "name").map(str::to_string).unwrap_or_else(|| format!("Sequence {n:02}"));
                 let seq_label = s.prefs.labels.defaults.sequence;
+                let mix = crate::track_mix::template(s);
                 let id = s.edit("New Sequence", |pr, st2| {
                     let id = pr.new_sequence(&name, st, nv as usize, na as usize, bin);
                     if let Some(it) = pr.item_mut(id) {
@@ -1715,6 +1716,9 @@ fn build() -> Vec<CommandSpec> {
                     }
                     if let (Some(c), Some(q)) = (track_type, pr.sequence_mut(id)) {
                         q.audio_tracks.iter_mut().for_each(|t| t.channels = c);
+                    }
+                    if let Some(q) = pr.sequence_mut(id) {
+                        crate::track_mix::apply_to_new(mix.as_ref(), q);
                     }
                     st2.active_sequence = Some(id);
                     if !st2.open_sequences.contains(&id) {
@@ -4227,6 +4231,7 @@ fn build() -> Vec<CommandSpec> {
     v.extend(crate::captions::commands());
     v.extend(crate::settings::commands());
     v.extend(crate::mixer::commands());
+    v.extend(crate::track_mix::commands());
     v.extend(crate::multicam::commands());
     v.extend(crate::essential_sound::commands());
     v.extend(crate::color::commands());
