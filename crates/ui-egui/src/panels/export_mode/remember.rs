@@ -104,14 +104,16 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("fc-export-remember-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let folder = dir.to_string_lossy().to_string();
-        let mut ex = ExportUi::default();
-        ex.preset = "Custom".into();
+        let mut ex = ExportUi {
+            preset: "Custom".into(),
+            location: folder.clone(),
+            file_name: "Not kept".into(),
+            open_sections: vec!["audio".into()],
+            quick_preset: "Match Source - High bitrate".into(),
+            quick_path: dir.join("cut.mp4").to_string_lossy().to_string(),
+            ..Default::default()
+        };
         ex.settings.scale = 0.5;
-        ex.location = folder.clone();
-        ex.file_name = "Not kept".into();
-        ex.open_sections = vec!["audio".into()];
-        ex.quick_preset = "Match Source - High bitrate".into();
-        ex.quick_path = dir.join("cut.mp4").to_string_lossy().to_string();
 
         let file = dir.join(EXPORT_FILE);
         RememberedExport::of(&ex).save(&file).unwrap();
